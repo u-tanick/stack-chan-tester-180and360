@@ -41,7 +41,7 @@ StackchanSystemConfig system_config;          // (Stackchan_system_config.h) プ
 
 // ==================================
 // for Servo
-#include <ESP32Servo.h>
+#include <ServoEasing.hpp>
 
 /**
  * 360度サーボのPWM値
@@ -50,8 +50,8 @@ StackchanSystemConfig system_config;          // (Stackchan_system_config.h) プ
  * 反時計周り : 1500 - 2500US : 180度
 */
 
-Servo servo180;  // 180度サーボ
-Servo servo360;  // 360度サーボ
+ServoEasing servo180;  // 180度サーボ
+ServoEasing servo360;  // 360度サーボ
 
 #define START_DEGREE_VALUE_SERVO_180  85  // 180度サーボ（Y軸方向）の初期角度
 #define START_DEGREE_VALUE_SERVO_360  90  // 360度サーボ（X軸方向）の初期角度
@@ -114,7 +114,32 @@ void servoRandomRunningMode(unsigned long currentMillis) {
 
     // 90 ～ 50 度の間の角度（初期位置は85）
     servo180_angle = START_DEGREE_VALUE_SERVO_180 - random(-5, 36);
-    servo180.write(servo180_angle);
+    servo180.startEaseTo(servo180_angle);
+
+    // 顔の向きが変わるタイミングで表情も変化させる
+    int i = servo180_angle % 6;
+    switch(i) {
+      case 0:
+        avatar.setExpression(Expression::Angry);
+        break;
+      case 1:
+        avatar.setExpression(Expression::Doubt);
+        break;
+      case 2:
+        avatar.setExpression(Expression::Happy);
+        break;
+      case 3:
+        avatar.setExpression(Expression::Neutral);
+        break;
+      case 4:
+        avatar.setExpression(Expression::Sad);
+        break;
+      case 5:
+        avatar.setExpression(Expression::Sleepy);
+        break;
+      default:
+        avatar.setExpression(Expression::Neutral);
+    }
   }
 
   // === 360°サーボの動作 (7秒〜30秒間隔) ===
@@ -122,9 +147,9 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     prevTime360 = currentMillis;
     interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
 
-    // 60 ～ 120 度が示す速度（初期位置は90）
-    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
-    servo360.write(servo360_speed);
+    // 66 ～ 114 度が示す速度（初期位置は90、2度刻み）
+    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-12, 12) * 2;
+    servo360.startEaseTo(servo360_speed);
   }
 
 }
@@ -142,31 +167,31 @@ void servoTestRunningMode(unsigned long currentMillis) {
     int i = count_180 % 8;
     switch(i) {
       case 0:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 + 5);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 + 5);
         break;
       case 1:
-        servo180.write(START_DEGREE_VALUE_SERVO_180);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
         break;
       case 2:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 - 10);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 10);
         break;
       case 3:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 - 20);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 20);
         break;
       case 4:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 - 30);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 30);
         break;
       case 5:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 - 20);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 20);
         break;
       case 6:
-        servo180.write(START_DEGREE_VALUE_SERVO_180 - 10);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 10);
         break;
       case 7:
-        servo180.write(START_DEGREE_VALUE_SERVO_180);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
         break;
       default:
-        servo180.write(START_DEGREE_VALUE_SERVO_180);
+        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
     }
     count_180++;
     // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
@@ -180,30 +205,30 @@ void servoTestRunningMode(unsigned long currentMillis) {
 
     // 60 ～ 120 度が示す速度（初期位置は90）
     servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
-    servo360.write(servo360_speed);
+    servo360.startEaseTo(servo360_speed);
 
     int i = count_360 % 5;
     switch(i) {
       case 0:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 + 10);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 10);
         break;
       case 1:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 + 20);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 20);
         break;
       case 2:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 + 30);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 30);
         break;
       case 3:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 - 10);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 10);
         break;
       case 4:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 - 20);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 20);
         break;
       case 5:
-        servo360.write(START_DEGREE_VALUE_SERVO_360 - 30);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 30);
         break;
       default:
-        servo360.write(START_DEGREE_VALUE_SERVO_360);
+        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);
     }
     count_360++;
     // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
@@ -264,9 +289,14 @@ void setup() {
   
   servo180.attach(SERVO_180_PIN);
   servo360.attach(SERVO_360_PIN);
+  
+  servo180.setEasingType(EASE_QUADRATIC_IN_OUT);       // 動きの最初と終わりがスムーズになる
+  servo360.setEasingType(EASE_LINEAR);                 // 一定の速度で動く
 
-  servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置にセット
-  servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止状態にセット
+  setSpeedForAllServos(60);
+
+  servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置にセット
+  servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止状態にセット
 
   M5.Power.setExtOutput(!system_config.getUseTakaoBase());       // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
   M5_LOGI("ServoType: %d\n", system_config.getServoType());      // サーボのタイプをログに出力
@@ -309,13 +339,13 @@ void loop() {
   // === ボタンAが押されたらテスト動作モードの開始/停止を切り替え ===
   if (M5.BtnA.wasPressed()) {
     M5.Speaker.tone(1500, 200);
-    isTestRunning = !isTestRunning;
-    isRandomRunning = false;  // ランダムモードのフラグは強制終了
     avatar.setExpression(Expression::Happy);
     avatar.setSpeechText("テストモード");
+    isTestRunning = !isTestRunning;
+    isRandomRunning = false;  // ランダムモードのフラグは強制終了
     if (!isTestRunning) {
-      servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
-      servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+      servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
+      servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
       avatar.setExpression(Expression::Neutral);
       avatar.setSpeechText("");
     }
@@ -324,11 +354,14 @@ void loop() {
   // === ボタンCが押されたらランダム動作モードの開始/停止を切り替え ===
   if (M5.BtnC.wasPressed()) {
     M5.Speaker.tone(1000, 200);
+    avatar.setSpeechText("");
     isRandomRunning = !isRandomRunning;
     isTestRunning = false;  // テストモードのフラグは強制終了
     if (!isRandomRunning) {
-      servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
-      servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+      servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
+      servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+      avatar.setExpression(Expression::Neutral);
+      avatar.setSpeechText("");
     }
   }
 

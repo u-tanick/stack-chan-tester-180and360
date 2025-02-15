@@ -43,17 +43,26 @@ StackchanSystemConfig system_config;          // (Stackchan_system_config.h) プ
 // for Servo
 #include <ESP32Servo.h>
 
+/**
+ * 360度サーボのPWM値
+ * 時計回り   : 500 - 1500US : 0度
+ * 停止       : 1500US : 90度
+ * 反時計周り : 1500 - 2500US : 180度
+*/
+
 Servo servo180;  // 180度サーボ
 Servo servo360;  // 360度サーボ
 
-// const int servo180Pin = 26;  // 180度サーボのピン
-// const int servo360Pin = 33;  // 360度サーボのピン
+#define START_DEGREE_VALUE_SERVO_180  85  // 180度サーボ（Y軸方向）の初期角度
+#define START_DEGREE_VALUE_SERVO_360  90  // 360度サーボ（X軸方向）の初期角度
 
-bool isRunning = false;  // サーボ動作のフラグ
+bool isRandomRunning = false;  // サーボ動作のフラグ
+bool isTestRunning = false;    // サーボテスト動作のフラグ
 unsigned long prevTime180 = 0, prevTime360 = 0;
 unsigned long interval180 = 0, interval360 = 0;
-int angle180 = 0;
-bool increasing = true;
+
+int servo180_angle = 0; // 180サーボの角度用変数
+int servo360_speed = 0; // 360サーボの速度用変数
 
 // ボード種別毎のピン設定など
 #ifdef ARDUINO_M5STACK_Core2
@@ -92,109 +101,116 @@ bool increasing = true;
 bool core_port_a = false;         // Core1のPortAを使っているかどうか
 // ================================== End
 
-
 // ==================================
-// OLD version
-// #include <ESP32Servo.h>
-// /**
-//  * 360度サーボのPWM値
-//  * 時計回り   : 500 - 1500US : 0度
-//  * 停止       : 1500US : 90度
-//  * 反時計周り : 1500 - 2500US : 180度
-// */
-// Servo servo_X;                               // 360度サーボ
-// ServoEasing servo_Y;                         // 180度サーボ
-// #define START_DEGREE_VALUE_Y 90
-// int servo_offset_y = 0;                      // Y軸サーボのオフセット（サーボの初期位置からの+-で設定）
+// for Servo Running Mode
 
-// // --------------------------------
-// // 360度サーボ動作用
-// // 停止
-// void stop360servo() {
-//   servo_X.write(90);
-// }
+// ランダムモード
+void servoRandomRunningMode(unsigned long currentMillis) {
 
-// // 停止よりマイナス
-// void move360servoPlus() {
-//   stop360servo();
-//   delay(1);
-//   servo_X.write(65);
-//   delay(5000);
-//   stop360servo();
-// }
+  // === 180°サーボの動作 (5秒〜10秒間隔) ===
+  if (currentMillis - prevTime180 >= interval180) {
+    prevTime180 = currentMillis;
+    interval180 = random(5000, 10001); // 5秒〜10秒のランダム間隔
 
-// // 停止よりプラス
-// void move360servoMinus() {
-//   stop360servo();
-//   delay(1);
-//   servo_X.write(105);
-//   delay(5000);
-//   stop360servo();
-// }
+    // 90 ～ 50 度の間の角度（初期位置は85）
+    servo180_angle = START_DEGREE_VALUE_SERVO_180 - random(-5, 36);
+    servo180.write(servo180_angle);
+  }
 
-// // --------------------------------
-// // 180度サーボ動作用
-// // サーボモーター：Y位置指定
-// void moveY(int y, uint32_t millis_for_move = 0) {
-//   if (millis_for_move == 0) {
-//     servo_Y.setEaseTo(y + servo_offset_y);
-//   } else {
-//     servo_Y.setEaseToD(y + servo_offset_y, millis_for_move);
-//   }
-//   // サーボが停止するまでウェイトします。
-//   synchronizeAllServosStartAndWaitForAllServosToStop();
-// }
+  // === 360°サーボの動作 (7秒〜30秒間隔) ===
+  if (currentMillis - prevTime360 >= interval360) {
+    prevTime360 = currentMillis;
+    interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
 
-// // --------------------------------
-// // 複合挙動用
-// // ランダムモード
-// void moveServoRandom() {
-//   for (;;) {
-//     delay(500);
-//   }
-//   M5.Speaker.tone(2500, 500);
-// }
+    // 60 ～ 120 度が示す速度（初期位置は90）
+    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
+    servo360.write(servo360_speed);
+  }
 
-// // テストモード
-// void moveServoTest() {
-//   // サーボのテストの動き
-//   for (int i=0; i<2; i++) { // 同じ動きを2回繰り返す。
-//     avatar.setSpeechText("Y center -> lower  ");
-//     moveY(system_config.getServoInfo(AXIS_Y)->lower_limit, 1000); // 上を向く
-//     avatar.setSpeechText("Y lower -> upper  ");
-//     moveY(system_config.getServoInfo(AXIS_Y)->upper_limit, 1000); // 下を向く
-//     avatar.setSpeechText("Hello!!");
-//     moveY(system_config.getServoInfo(AXIS_Y)->start_degree, 500); //正面を向く
-//     avatar.setSpeechText("Move Leg.");                            // 足をバタバタ
-//     move360servoPlus();
-//     move360servoMinus();
-//     avatar.setSpeechText("More Move.");                           // もう一回バタバタ
-//     move360servoPlus();
-//     move360servoMinus();
-//     avatar.setSpeechText("Finish!!");
-//   }
-// }
+}
 
+// テストモード
+int count_180 = 0;
+int count_360 = 0;
+void servoTestRunningMode(unsigned long currentMillis) {
+
+  // === 180°サーボの動作 (3秒間隔) ===
+  if (currentMillis - prevTime180 >= interval180) {
+    prevTime180 = currentMillis;
+    interval180 = 3000; // 3秒間隔固定
+
+    int i = count_180 % 8;
+    switch(i) {
+      case 0:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 + 5);
+        break;
+      case 1:
+        servo180.write(START_DEGREE_VALUE_SERVO_180);
+        break;
+      case 2:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 - 10);
+        break;
+      case 3:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 - 20);
+        break;
+      case 4:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 - 30);
+        break;
+      case 5:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 - 20);
+        break;
+      case 6:
+        servo180.write(START_DEGREE_VALUE_SERVO_180 - 10);
+        break;
+      case 7:
+        servo180.write(START_DEGREE_VALUE_SERVO_180);
+        break;
+      default:
+        servo180.write(START_DEGREE_VALUE_SERVO_180);
+    }
+    count_180++;
+    // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
+    if (count_180 == 99) count_180 = 0;
+  }
+
+  // === 360°サーボの動作 (5秒間隔) ===
+  if (currentMillis - prevTime360 >= interval360) {
+    prevTime360 = currentMillis;
+    interval360 = 5000; // 5秒間隔固定
+
+    // 60 ～ 120 度が示す速度（初期位置は90）
+    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
+    servo360.write(servo360_speed);
+
+    int i = count_360 % 5;
+    switch(i) {
+      case 0:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 + 10);
+        break;
+      case 1:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 + 20);
+        break;
+      case 2:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 + 30);
+        break;
+      case 3:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 - 10);
+        break;
+      case 4:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 - 20);
+        break;
+      case 5:
+        servo360.write(START_DEGREE_VALUE_SERVO_360 - 30);
+        break;
+      default:
+        servo360.write(START_DEGREE_VALUE_SERVO_360);
+    }
+    count_360++;
+    // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
+    if (count_360 == 99) count_360 = 0;
+  }
+}
 // ================================== End
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ----------------------------------------------
 void setup() {
@@ -249,25 +265,8 @@ void setup() {
   servo180.attach(SERVO_180_PIN);
   servo360.attach(SERVO_360_PIN);
 
-  // OLD version
-  // サーボの初期化を行います。（このとき、初期位置（正面）を向きます。）
-  // X軸方向の初期化（360度サーボ）
-  // servo_X.setPeriodHertz(50);
-  // if (servo_X.attach(SERVO_360_PIN, 500, 2500)) {
-  //   Serial.print("Error attaching servo X");
-  // }
-  // // Y軸方向の初期化（180度サーボ）
-  // Serial.print("Success attached servo x\n");
-  // if (servo_Y.attach(SERVO_180_PIN,
-  //                    START_DEGREE_VALUE_Y + servo_offset_y,
-  //                    DEFAULT_MICROSECONDS_FOR_0_DEGREE,
-  //                    DEFAULT_MICROSECONDS_FOR_180_DEGREE)) {
-  //   Serial.print("Error attaching servo y\n");
-  // }
-  // Serial.print("Success attached servo y\n");
-  // servo_Y.setEasingType(EASE_QUADRATIC_IN_OUT);
-  // // サーボモーター初期位置設定
-  // moveY(system_config.getServoInfo(AXIS_Y)->start_degree, 500);
+  servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置にセット
+  servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止状態にセット
 
   M5.Power.setExtOutput(!system_config.getUseTakaoBase());       // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
   M5_LOGI("ServoType: %d\n", system_config.getServoType());      // サーボのタイプをログに出力
@@ -287,10 +286,9 @@ void setup() {
   // フォントの指定
   avatar.setSpeechFont(&fonts::lgfxJapanGothicP_16);
 
-  // last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。
-  //moveRandom();
-  //testServo();
+  last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。
 
+  // ランダム動作用の変数初期化
   randomSeed(analogRead(0));
   interval180 = random(5000, 10001); // 5秒〜10秒のランダム間隔
   interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
@@ -298,7 +296,7 @@ void setup() {
 }
 
 // ----------------------------------------------
-char speechText[100];  // フォーマットされた文字列を格納するためのバッファ
+char speechText[100];  // フォーマットされた文字列を格納するためのバッファ、Avatarの吹き出しに変数を使用する場合に使用
 void loop() {
 
 // CoreS3のボタン処理有効化（画面=タッチパネルを[右][中央][左]に3等分した領域がそれぞれBtnA, BtnB, BtnCに対応）
@@ -308,75 +306,36 @@ void loop() {
 #endif
   M5.update();
 
-  // === ボタンAが押されたら動作開始/停止を切り替え ===
+  // === ボタンAが押されたらテスト動作モードの開始/停止を切り替え ===
   if (M5.BtnA.wasPressed()) {
-    isRunning = !isRunning;
-    if (!isRunning) {
-      servo180.write(90);  // 180°サーボを中間位置に戻す
-      servo360.write(90);  // 360°サーボを停止
+    M5.Speaker.tone(1500, 200);
+    isTestRunning = !isTestRunning;
+    isRandomRunning = false;  // ランダムモードのフラグは強制終了
+    avatar.setExpression(Expression::Happy);
+    avatar.setSpeechText("テストモード");
+    if (!isTestRunning) {
+      servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
+      servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+      avatar.setExpression(Expression::Neutral);
+      avatar.setSpeechText("");
     }
   }
 
-  if (!isRunning) return;  // 停止中なら何もしない
+  // === ボタンCが押されたらランダム動作モードの開始/停止を切り替え ===
+  if (M5.BtnC.wasPressed()) {
+    M5.Speaker.tone(1000, 200);
+    isRandomRunning = !isRandomRunning;
+    isTestRunning = false;  // テストモードのフラグは強制終了
+    if (!isRandomRunning) {
+      servo180.write(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
+      servo360.write(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+    }
+  }
+
+  if (!isRandomRunning && !isTestRunning) return;  // 停止中なら何もしない
 
   unsigned long currentMillis = millis();
+  if (isRandomRunning) servoRandomRunningMode(currentMillis);
+  if (isTestRunning) servoTestRunningMode(currentMillis);
 
-  // === 180°サーボの動作 (5秒〜10秒間隔) ===
-  if (currentMillis - prevTime180 >= interval180) {
-    prevTime180 = currentMillis;
-    interval180 = random(5000, 10001); // 5秒〜10秒のランダム間隔
-
-    if (increasing) {
-      angle180 += 45;
-      if (angle180 >= 180) increasing = false;
-    } else {
-      angle180 -= 45;
-      if (angle180 <= 0) increasing = true;
-    }
-    servo180.write(angle180);
-  }
-
-  // === 360°サーボの動作 (7秒〜30秒間隔) ===
-  if (currentMillis - prevTime360 >= interval360) {
-    prevTime360 = currentMillis;
-    interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
-
-    int speed = random(0, 181);
-    servo360.write(speed);
-  }
-
-  // // ボタンA
-  // // スピーカーを鳴らす、M5Stack-Avatarの表情変更、M5Stack-Avatarの台詞表示
-  // if (M5.BtnA.wasPressed()) {
-  //     M5.Speaker.tone(1000, 200);
-  //     avatar.setExpression(Expression::Happy);
-  //     avatar.setSpeechText("御用でしょうか？");
-  // }
-
-  // // ボタンB
-  // // M5Stack-Avatarの台詞をテキスト変数で渡して表示、変数をログに出力
-  // if (M5.BtnB.wasPressed()) {
-  //     M5.Speaker.tone(1500, 200);
-  //     avatar.setExpression(Expression::Neutral);
-  //     char buff[100];
-  //     sprintf(buff,"こんにちわ！");
-  //     avatar.setSpeechText(buff);
-  //     M5_LOGI("SpeechText: %c\n", buff);
-  // }
-
-  // // ボタンC
-  // // M5Stack-Avatarの顔変更
-  // if (M5.BtnC.wasPressed()) {
-  //     M5.Speaker.tone(2000, 200);
-  //     // cp = new ColorPalette();
-  //     // cp->set(COLOR_PRIMARY, TFT_BLACK);
-  //     // cp->set(COLOR_BACKGROUND, TFT_WHITE);
-  //     // avatar.setColorPalette(*cp);
-  //     // avatar.setFace(new SacabambaspisFace());
-  //     // avatar.setSpeechText("うにょんうにょん");
-
-  //     // moveServoTest();
-  // }
-
-  // delay(1);
 }

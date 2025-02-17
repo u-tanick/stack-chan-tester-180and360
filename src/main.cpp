@@ -311,10 +311,8 @@ void setup() {
   cp->set(COLOR_BACKGROUND, TFT_BLACK);
   avatar.setColorPalette(*cp);
   avatar.init(8);
-  // バッテリーアイコンの表示／非表示
-  avatar.setBatteryIcon(true);
-  // フォントの指定
-  avatar.setSpeechFont(&fonts::lgfxJapanGothicP_16);
+  avatar.setBatteryIcon(true);                        // バッテリーアイコンの表示／非表示
+  avatar.setSpeechFont(&fonts::lgfxJapanGothicP_12);  // フォントの指定
 
   last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。
 

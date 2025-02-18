@@ -135,7 +135,7 @@ void initializeServoTimers() {
   unsigned long now = millis();
   prevTime180 = now;
   prevTime360 = now;
-  interval180 = random(0, 101);  // すぐに動作するように短い時間を設定
+  interval180 = random(0, 101);  // ボタンを押した直後はすぐに動作するように初期値として短い時間を設定
   interval360 = random(0, 101);
 }
 
@@ -152,6 +152,7 @@ void startTestMode() {
 }
 
 // ランダムモード
+int rand_count_180 = 2; // 2 = 表情：Happy
 void servoRandomRunningMode(unsigned long currentMillis) {
 
   // === 180°サーボの動作 (5秒〜10秒間隔) ===
@@ -160,11 +161,12 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     interval180 = random(5000, 10001); // 5秒〜10秒のランダム間隔
 
     // 90 ～ 50 度の間の角度（初期位置は85）
-    servo180_angle = START_DEGREE_VALUE_SERVO_180 - random(-5, 36);
-    servo180.startEaseTo(servo180_angle);
+    int rand_speed_offset_180 = random(-5, 36);
+    servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - rand_speed_offset_180);
 
     // 顔の向きが変わるタイミングで表情も変化させる
-    changeExpression(servo180_angle % 6);
+    changeExpression(rand_count_180 % 7);
+    rand_count_180 = (rand_count_180 + 1) % 7;
   }
 
   // === 360°サーボの動作 (7秒〜30秒間隔) ===
@@ -173,15 +175,15 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
 
     // 66 ～ 114 度が示す速度（初期位置は90、2度刻み）
-    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-12, 12) * 2;
-    servo360.startEaseTo(servo360_speed);
+    int rand_speed_offset_360 = random(-12, 12)* 2;
+    servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + rand_speed_offset_360);
   }
 
 }
 
 // テストモード
 int count_180 = 0;
-// int count_360 = 0;
+int count_360 = 0;
 void servoTestRunningMode(unsigned long currentMillis) {
 
   // === 180°サーボの動作 (3秒間隔) ===
@@ -198,8 +200,8 @@ void servoTestRunningMode(unsigned long currentMillis) {
     interval360 = 5000; // 5秒間隔固定
 
     // 60 ～ 120 度が示す速度（初期位置は90）
-    servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
-    servo360.startEaseTo(servo360_speed);
+    servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + (count_360 % 7) * 10 - 30);
+    count_360 = (count_360 + 1) % 99;
   }
 }
 // ================================== End

@@ -14,6 +14,32 @@
 using namespace m5avatar;                    // (Avatar.h)avatarのnamespaceを使う宣言（こうするとm5avatar::???と書かなくて済む。)
 Avatar avatar;                               // (Avatar.h)avatarのクラスを定義
 ColorPalette *cp;                            // アバターのカラーパレット用
+
+// 表情を変更
+void changeExpression(int num) {
+  switch(num) {
+    case 0:
+      avatar.setExpression(Expression::Angry);
+      break;
+    case 1:
+      avatar.setExpression(Expression::Doubt);
+      break;
+    case 2:
+      avatar.setExpression(Expression::Happy);
+      break;
+    case 3:
+      avatar.setExpression(Expression::Neutral);
+      break;
+    case 4:
+      avatar.setExpression(Expression::Sad);
+      break;
+    case 5:
+      avatar.setExpression(Expression::Sleepy);
+      break;
+    default:
+      avatar.setExpression(Expression::Neutral);
+  }
+}
 // ================================== End
 
 // ==================================
@@ -104,6 +130,27 @@ bool core_port_a = false;         // Core1のPortAを使っているかどうか
 // ==================================
 // for Servo Running Mode
 
+// サーボのタイマーを初期化する関数
+void initializeServoTimers() {
+  unsigned long now = millis();
+  prevTime180 = now;
+  prevTime360 = now;
+  interval180 = random(0, 101);  // すぐに動作するように短い時間を設定
+  interval360 = random(0, 101);
+}
+
+// ランダムモード開始時にタイマーをリセット
+void startRandomMode() {
+  isRandomRunning = true;
+  initializeServoTimers();  // タイマー初期化
+}
+
+// テストモード開始時にタイマーをリセット
+void startTestMode() {
+  isTestRunning = true;
+  initializeServoTimers();  // タイマー初期化
+}
+
 // ランダムモード
 void servoRandomRunningMode(unsigned long currentMillis) {
 
@@ -117,29 +164,7 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     servo180.startEaseTo(servo180_angle);
 
     // 顔の向きが変わるタイミングで表情も変化させる
-    int i = servo180_angle % 6;
-    switch(i) {
-      case 0:
-        avatar.setExpression(Expression::Angry);
-        break;
-      case 1:
-        avatar.setExpression(Expression::Doubt);
-        break;
-      case 2:
-        avatar.setExpression(Expression::Happy);
-        break;
-      case 3:
-        avatar.setExpression(Expression::Neutral);
-        break;
-      case 4:
-        avatar.setExpression(Expression::Sad);
-        break;
-      case 5:
-        avatar.setExpression(Expression::Sleepy);
-        break;
-      default:
-        avatar.setExpression(Expression::Neutral);
-    }
+    changeExpression(servo180_angle % 6);
   }
 
   // === 360°サーボの動作 (7秒〜30秒間隔) ===
@@ -156,46 +181,15 @@ void servoRandomRunningMode(unsigned long currentMillis) {
 
 // テストモード
 int count_180 = 0;
-int count_360 = 0;
+// int count_360 = 0;
 void servoTestRunningMode(unsigned long currentMillis) {
 
   // === 180°サーボの動作 (3秒間隔) ===
   if (currentMillis - prevTime180 >= interval180) {
     prevTime180 = currentMillis;
     interval180 = 3000; // 3秒間隔固定
-
-    int i = count_180 % 8;
-    switch(i) {
-      case 0:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 + 5);
-        break;
-      case 1:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
-        break;
-      case 2:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 10);
-        break;
-      case 3:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 20);
-        break;
-      case 4:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 30);
-        break;
-      case 5:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 20);
-        break;
-      case 6:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - 10);
-        break;
-      case 7:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
-        break;
-      default:
-        servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);
-    }
-    count_180++;
-    // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
-    if (count_180 == 99) count_180 = 0;
+    servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - (count_180 % 8) * 5);
+    count_180 = (count_180 + 1) % 99;
   }
 
   // === 360°サーボの動作 (5秒間隔) ===
@@ -206,33 +200,6 @@ void servoTestRunningMode(unsigned long currentMillis) {
     // 60 ～ 120 度が示す速度（初期位置は90）
     servo360_speed = START_DEGREE_VALUE_SERVO_360 + random(-30, 31);
     servo360.startEaseTo(servo360_speed);
-
-    int i = count_360 % 5;
-    switch(i) {
-      case 0:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 10);
-        break;
-      case 1:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 20);
-        break;
-      case 2:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + 30);
-        break;
-      case 3:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 10);
-        break;
-      case 4:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 20);
-        break;
-      case 5:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 - 30);
-        break;
-      default:
-        servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);
-    }
-    count_360++;
-    // 100回動作したらカウントをゼロにリセット（無制限時間挙動時のオーバーフロー対策）
-    if (count_360 == 99) count_360 = 0;
   }
 }
 // ================================== End
@@ -311,7 +278,7 @@ void setup() {
   cp->set(COLOR_BACKGROUND, TFT_BLACK);
   avatar.setColorPalette(*cp);
   avatar.init(8);
-  avatar.setBatteryIcon(true);                        // バッテリーアイコンの表示／非表示
+  // avatar.setBatteryIcon(true);                        // バッテリーアイコンの表示／非表示
   avatar.setSpeechFont(&fonts::lgfxJapanGothicP_12);  // フォントの指定
 
   last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。
@@ -339,9 +306,11 @@ void loop() {
     M5.Speaker.tone(1500, 200);
     avatar.setExpression(Expression::Happy);
     avatar.setSpeechText("テストモード");
-    isTestRunning = !isTestRunning;
-    isRandomRunning = false;  // ランダムモードのフラグは強制終了
     if (!isTestRunning) {
+      startTestMode();
+    } else {
+      isTestRunning = false;
+      isRandomRunning = false;  // ランダムモードのフラグは強制終了
       servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
       servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
       avatar.setExpression(Expression::Neutral);
@@ -353,9 +322,11 @@ void loop() {
   if (M5.BtnC.wasPressed()) {
     M5.Speaker.tone(1000, 200);
     avatar.setSpeechText("");
-    isRandomRunning = !isRandomRunning;
-    isTestRunning = false;  // テストモードのフラグは強制終了
     if (!isRandomRunning) {
+      startRandomMode();
+    } else {
+      isRandomRunning = false;
+      isTestRunning = false;  // テストモードのフラグは強制終了
       servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
       servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
       avatar.setExpression(Expression::Neutral);

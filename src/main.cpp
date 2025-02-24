@@ -80,7 +80,10 @@ ServoEasing servo180;  // 180度サーボ
 ServoEasing servo360;  // 360度サーボ
 
 #define START_DEGREE_VALUE_SERVO_180  85  // 180度サーボ（Y軸方向）の初期角度
-#define START_DEGREE_VALUE_SERVO_360  90  // 360度サーボ（X軸方向）の初期角度
+#define START_DEGREE_VALUE_SERVO_360  95  // 360度サーボ（X軸方向）の初期角度(=360度サーボの停止位置：試作に使用したsg90-hvの場合90だと停止しなかったのでこの値に設定)
+
+const int MIN_PWM = 500;
+const int MAX_PWM = 2400;
 
 bool isRandomRunning = false;  // サーボ動作のフラグ
 bool isTestRunning = false;    // サーボテスト動作のフラグ
@@ -152,7 +155,6 @@ void startTestMode() {
 }
 
 // ランダムモード
-int rand_count_180 = 2; // 2 = 表情：Happy
 void servoRandomRunningMode(unsigned long currentMillis) {
 
   // === 180°サーボの動作 (5秒〜10秒間隔) ===
@@ -165,8 +167,7 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180 - rand_speed_offset_180);
 
     // 顔の向きが変わるタイミングで表情も変化させる
-    changeExpression(rand_count_180 % 7);
-    rand_count_180 = (rand_count_180 + 1) % 7;
+    changeExpression((rand_speed_offset_180 + 5) % 7);
   }
 
   // === 360°サーボの動作 (7秒〜30秒間隔) ===
@@ -256,11 +257,11 @@ void setup() {
   servo180.setPeriodHertz(50);  // サーボ用のPWMを50Hzに設定
   servo360.setPeriodHertz(50);
   
-  servo180.attach(SERVO_180_PIN);
-  servo360.attach(SERVO_360_PIN);
+  servo180.attach(SERVO_180_PIN, MIN_PWM, MAX_PWM);
+  servo360.attach(SERVO_360_PIN, MIN_PWM, MAX_PWM);
   
   servo180.setEasingType(EASE_QUADRATIC_IN_OUT);       // 動きの最初と終わりがスムーズになる
-  servo360.setEasingType(EASE_QUADRATIC_IN_OUT);       // 一定の速度で動かす場合は EASE_LINEAR に変更
+  servo360.setEasingType(EASE_LINEAR);       // 一定の速度で動かす場合は EASE_LINEAR に変更
 
   setSpeedForAllServos(60);
 
@@ -285,8 +286,11 @@ void setup() {
 
   last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。
 
-  // ランダム動作用の変数初期化
-  randomSeed(analogRead(0));
+  // ランダム動作用の変数初期化、個体差を出すためMACアドレスを使用する
+  uint8_t mac[6];
+  esp_efuse_mac_get_default(mac);
+  uint32_t seed = mac[0] | (mac[1] << 8) | (mac[2] << 16) | (mac[3] << 24);
+  randomSeed(seed);
   interval180 = random(5000, 10001); // 5秒〜10秒のランダム間隔
   interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
 

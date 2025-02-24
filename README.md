@@ -18,7 +18,34 @@ M5Stackに顔を表示させるライブラリ [M5Stack-Avatar](https://github.c
 - gob/gob_unifiedButton @ ^0.1.5
 - tobozo/M5Stack-SD-Updater
 
-## 想定機種
+- その他
+  - サーボモーターの制御は `ServoEasing` を使用しています。
+
+## 想定サーボモーター
+
+- 180度回転サーボモーター
+  - [TowerPro SG90](https://akizukidenshi.com/catalog/g/g108761/)
+- 360度回転サーボモーター
+  - [TowerPro SG90-HV](https://akizukidenshi.com/catalog/g/g114382/)
+
+`FEETECH` などの他社のサーボモーターを使用する場合は、パルス幅(マイクロ秒)を使用する機種にあった値に変更してください。
+
+``` cpp
+// パルス幅の定義箇所
+// L:85 付近
+const int MIN_PWM = 500;
+const int MAX_PWM = 2400;
+```
+
+``` cpp
+// パルス幅の設定箇所
+// L:260 付近
+servo180.attach(SERVO_180_PIN, MIN_PWM, MAX_PWM);
+servo360.attach(SERVO_360_PIN, MIN_PWM, MAX_PWM);
+```
+
+
+## 想定M5Stack製品
 
 詳細は `platformio.ini` を参照してください。
 

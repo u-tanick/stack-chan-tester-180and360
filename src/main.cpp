@@ -260,12 +260,12 @@ void setup() {
   servo360.attach(SERVO_360_PIN);
   
   servo180.setEasingType(EASE_QUADRATIC_IN_OUT);       // 動きの最初と終わりがスムーズになる
-  servo360.setEasingType(EASE_LINEAR);                 // 一定の速度で動く
+  servo360.setEasingType(EASE_QUADRATIC_IN_OUT);       // 一定の速度で動かす場合は EASE_LINEAR に変更
 
   setSpeedForAllServos(60);
 
   servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置にセット
-  servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止状態にセット
+  servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止位置にセット
 
   M5.Power.setExtOutput(!system_config.getUseTakaoBase());       // 設定ファイルのTakaoBaseがtrueの場合は、Groveポートの5V出力をONにする。
   M5_LOGI("ServoType: %d\n", system_config.getServoType());      // サーボのタイプをログに出力
@@ -320,7 +320,20 @@ void loop() {
     }
   }
 
-  // === ボタンCが押されたらランダム動作モードの開始/停止を切り替え ===
+  // === 強制停止 ===
+  if (M5.BtnB.wasPressed()) {
+    M5.Speaker.tone(2500, 200);
+    avatar.setSpeechText("停止");
+    isTestRunning = false;
+    isRandomRunning = false;  // ランダムモードのフラグは強制終了
+    servo180.startEaseTo(START_DEGREE_VALUE_SERVO_180);  // 180°サーボを初期位置に戻す
+    servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360);  // 360°サーボを停止
+    avatar.setExpression(Expression::Neutral);
+    delay(1500);
+    avatar.setSpeechText("");
+}
+
+    // === ボタンCが押されたらランダム動作モードの開始/停止を切り替え ===
   if (M5.BtnC.wasPressed()) {
     M5.Speaker.tone(1000, 200);
     avatar.setSpeechText("");

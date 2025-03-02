@@ -55,6 +55,41 @@ M5Stackに顔を表示させるライブラリ [M5Stack-Avatar](https://github.c
 // #define USE_Servo_360_M5Stack
 ```
 
+## [重要] 360サーボの注意点
+
+停止位置の角度を `START_DEGREE_VALUE_SERVO_360` という変数で定義していますが、`TowerPro` や `FEETECH` のサーボモーターは個体差が激しく、仕様通りに `90度で停止` とはならない場合があります。
+
+起動直後は、360度サーボモーターは停止位置にセットされていますが、もし微妙に動くような場合は下記コード中の `START_DEGREE_VALUE_SERVO_360` の値を変更して調整してください。
+
+``` cpp
+// L:120 付近
+
+// サーボの種類毎のPWM幅や初期角度、回転速度のレンジ設定など
+#ifdef USE_Servo_360_TowerPro
+  const int MIN_PWM_360 = 500;
+  const int MAX_PWM_360 = 2400;
+  // const int START_DEGREE_VALUE_SERVO_360 = 90;     // 360度サーボの停止位置：仕様では90で停止
+  const int START_DEGREE_VALUE_SERVO_360 = 95;        // サーボ個体差で、90度指定で停止しなかった場合値を変えてみる（試作に使用したsg90-hvの場合95付近で停止だった)
+  const int SERVO_DEG_RANGE_MAX = 12;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
+#ifdef USE_Servo_360_Feetech360
+  const int MIN_PWM_360 = 700;
+  const int MAX_PWM_360 = 2300;
+  // const int START_DEGREE_VALUE_SERVO_360 = 90;     // 360度サーボの停止位置：仕様では90で停止
+  const int START_DEGREE_VALUE_SERVO_360 = 93;        // サーボ個体差で、90度指定で停止しなかった場合値を変えてみる（試作に使用したsg90-hvの場合95付近で停止だった)
+  const int SERVO_DEG_RANGE_MAX = 6;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
+#ifdef USE_Servo_360_M5Stack
+  const int MIN_PWM_360 = 500;
+  const int MAX_PWM_360 = 2500;
+  const int START_DEGREE_VALUE_SERVO_360 = 90;         // 360度サーボの停止位置：仕様では90で停止（M5Stack公式は停止のレンジが85～95あたりと広めにとられている様子。手元では個体差なし）
+  const int SERVO_DEG_RANGE_MAX = 12;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
+```
+
 ## 想定M5Stack製品
 
 詳細は `platformio.ini` を参照してください。デフォルトでは `m5stack-core2` となっています。

@@ -70,20 +70,77 @@ StackchanSystemConfig system_config;          // (Stackchan_system_config.h) プ
 #include <ServoEasing.hpp>
 
 /**
- * 360度サーボのPWM値
- * 時計回り   : 500 - 1500US : 0度
+ * サーボのPWM値と回転方向の関係（最右列は180サーボの場合の角度）
+ * 
+ * Tower Pro
+ * 時計回り   : 500 - 1500US : 0 - 90度
  * 停止       : 1500US : 90度
- * 反時計周り : 1500 - 2500US : 180度
+ * 反時計周り : 1500 - 2400US : 90 - 180度
+ * 
+ * Feetech
+ * 時計回り   : 700 - 1500US : 0 - 90度
+ * 停止       : 1500US : 90度
+ * 反時計周り : 1500 - 2300US : 90 - 180度
+ * 
+ * M5Stack
+ * 時計回り   : 500 - 1500US : 0 - 90度
+ * 停止       : 1500US : 90度
+ * 反時計周り : 1500 - 2500US : 90 - 180度
 */
 
 ServoEasing servo180;  // 180度サーボ
 ServoEasing servo360;  // 360度サーボ
 
-#define START_DEGREE_VALUE_SERVO_180  85  // 180度サーボ（Y軸方向）の初期角度
-#define START_DEGREE_VALUE_SERVO_360  95  // 360度サーボ（X軸方向）の初期角度(=360度サーボの停止位置：試作に使用したsg90-hvの場合90だと停止しなかったのでこの値に設定)
+// 使用する180サーボのメーカー
+#define USE_Servo_180_TowerPro
+// #define USE_Servo_180_Feetech360
+// #define USE_Servo_180_M5Stack
 
-const int MIN_PWM = 500;
-const int MAX_PWM = 2400;
+#define START_DEGREE_VALUE_SERVO_180  85  // 180度サーボ（Y軸方向）の初期角度(全サーボ共通)
+
+// サーボの種類毎のPWM幅や初期角度、回転速度のレンジ設定など
+#ifdef USE_Servo_180_TowerPro
+  const int MIN_PWM_180 = 500;
+  const int MAX_PWM_180 = 2400;
+#endif
+#ifdef USE_Servo_180_Feetech360
+  const int MIN_PWM_180 = 700;
+  const int MAX_PWM_180 = 2300;
+#endif
+#ifdef USE_Servo_180_M5Stack
+  const int MIN_PWM_180 = 500;
+  const int MAX_PWM_180 = 2500;
+#endif
+
+// 使用する360サーボのメーカー
+#define USE_Servo_360_TowerPro
+// #define USE_Servo_360_Feetech360
+// #define USE_Servo_360_M5Stack
+
+// サーボの種類毎のPWM幅や初期角度、回転速度のレンジ設定など
+#ifdef USE_Servo_360_TowerPro
+  const int MIN_PWM_360 = 500;
+  const int MAX_PWM_360 = 2400;
+  // const int START_DEGREE_VALUE_SERVO_360 = 90;     // 360度サーボの停止位置：仕様では90で停止
+  const int START_DEGREE_VALUE_SERVO_360 = 95;        // サーボ個体差で、90度指定で停止しなかった場合値を変えてみる（試作に使用したsg90-hvの場合95付近で停止だった)
+  const int SERVO_DEG_RANGE_MAX = 12;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
+#ifdef USE_Servo_360_Feetech360
+  const int MIN_PWM_360 = 700;
+  const int MAX_PWM_360 = 2300;
+  // const int START_DEGREE_VALUE_SERVO_360 = 90;     // 360度サーボの停止位置：仕様では90で停止
+  const int START_DEGREE_VALUE_SERVO_360 = 93;        // サーボ個体差で、90度指定で停止しなかった場合値を変えてみる（試作に使用したsg90-hvの場合95付近で停止だった)
+  const int SERVO_DEG_RANGE_MAX = 6;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
+#ifdef USE_Servo_360_M5Stack
+  const int MIN_PWM_360 = 500;
+  const int MAX_PWM_360 = 2500;
+  const int START_DEGREE_VALUE_SERVO_360 = 90;         // 360度サーボの停止位置：仕様では90で停止（M5Stack公式は停止のレンジが85～95あたりと広めにとられている様子。手元では個体差なし）
+  const int SERVO_DEG_RANGE_MAX = 12;
+  const int SERVO_DEG_RANGE_MIN = -1 * SERVO_DEG_RANGE_MAX;
+#endif
 
 bool isRandomRunning = false;  // サーボ動作のフラグ
 bool isTestRunning = false;    // サーボテスト動作のフラグ
@@ -176,10 +233,9 @@ void servoRandomRunningMode(unsigned long currentMillis) {
     interval360 = random(7000, 30001); // 7秒〜30秒のランダム間隔
 
     // 66 ～ 114 度が示す速度（初期位置は90、2度刻み）
-    int rand_speed_offset_360 = random(-12, 12)* 2;
+    int rand_speed_offset_360 = random(SERVO_DEG_RANGE_MIN, SERVO_DEG_RANGE_MAX)* 2;
     servo360.startEaseTo(START_DEGREE_VALUE_SERVO_360 + rand_speed_offset_360);
   }
-
 }
 
 // テストモード
@@ -245,7 +301,7 @@ void setup() {
       core_port_a = true;                 // Core1でポートAを使用しているフラグをtrueに設定
     }
   } else {
-    avatar.setBatteryIcon(true);          // Core2以降の場合は、バッテリーアイコンを表示する。
+    avatar.setBatteryIcon(true);          // Core2以降の場合は、バッテリーアイコンを表示可能となる。
   }
 
   // servoの初期化
@@ -257,8 +313,8 @@ void setup() {
   servo180.setPeriodHertz(50);  // サーボ用のPWMを50Hzに設定
   servo360.setPeriodHertz(50);
   
-  servo180.attach(SERVO_180_PIN, MIN_PWM, MAX_PWM);
-  servo360.attach(SERVO_360_PIN, MIN_PWM, MAX_PWM);
+  servo180.attach(SERVO_180_PIN, MIN_PWM_180, MAX_PWM_180);
+  servo360.attach(SERVO_360_PIN, MIN_PWM_360, MAX_PWM_360);
   
   servo180.setEasingType(EASE_QUADRATIC_IN_OUT);       // 動きの最初と終わりがスムーズになる
   servo360.setEasingType(EASE_LINEAR);       // 一定の速度で動かす場合は EASE_LINEAR に変更
@@ -281,7 +337,7 @@ void setup() {
   cp->set(COLOR_BACKGROUND, TFT_BLACK);
   avatar.setColorPalette(*cp);
   avatar.init(8);
-  // avatar.setBatteryIcon(true);                        // バッテリーアイコンの表示／非表示
+  avatar.setBatteryIcon(false);                        // バッテリーアイコンの表示／非表示
   avatar.setSpeechFont(&fonts::lgfxJapanGothicP_12);  // フォントの指定
 
   last_mouth_millis = millis();    // loop内で使用するのですが、処理を止めずにタイマーを実行するための変数です。一定時間で口を開くのとセリフを切り替えるのに利用します。

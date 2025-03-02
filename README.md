@@ -23,36 +23,46 @@ M5Stackに顔を表示させるライブラリ [M5Stack-Avatar](https://github.c
 
 ## 想定サーボモーター
 
+デフォルトでは180, 360ともに `TowerPro` のサーボモーターを想定した設定となっています。
+
 - 180度回転サーボモーター
   - [TowerPro SG90](https://akizukidenshi.com/catalog/g/g108761/)
+  - [FEETECH FS90](https://www.switch-science.com/products/7111)
+  - [M5Stack Servo Kit 180](https://www.switch-science.com/products/6478)
 - 360度回転サーボモーター
   - [TowerPro SG90-HV](https://akizukidenshi.com/catalog/g/g114382/)
+  - [FEETECH FS90R](https://www.switch-science.com/products/7113)
+  - [M5Stack Servo Kit 360](https://www.switch-science.com/products/6479)
 
-`FEETECH` などの他社のサーボモーターを使用する場合は、パルス幅(マイクロ秒)を使用する機種にあった値に変更してください。
+使用するサーボモーターのメーカーを変更する場合は、180度サーボ、360度サーボそれぞれ以下の箇所で切り替え可能です。
+これら以外のサーボモーターを使用する場合は、適宜関連するコードを改修してください。
 
 ``` cpp
-// パルス幅の定義箇所
-// L:85 付近
-const int MIN_PWM = 500;
-const int MAX_PWM = 2400;
+// L:94 付近
+
+// 使用する180サーボのメーカー
+#define USE_Servo_180_TowerPro
+// #define USE_Servo_180_Feetech360
+// #define USE_Servo_180_M5Stack
 ```
 
 ``` cpp
-// パルス幅の設定箇所
-// L:260 付近
-servo180.attach(SERVO_180_PIN, MIN_PWM, MAX_PWM);
-servo360.attach(SERVO_360_PIN, MIN_PWM, MAX_PWM);
-```
+// L:115 付近
 
+// 使用する360サーボのメーカー
+#define USE_Servo_360_TowerPro
+// #define USE_Servo_360_Feetech360
+// #define USE_Servo_360_M5Stack
+```
 
 ## 想定M5Stack製品
 
-詳細は `platformio.ini` を参照してください。
+詳細は `platformio.ini` を参照してください。デフォルトでは `m5stack-core2` となっています。
 
 - m5stack-core-esp32
 - m5stack-grey
 - m5stack-fire
-- m5stack-cores2
+- m5stack-core2
 - m5stack-cores3
 
 ## 提供機能
